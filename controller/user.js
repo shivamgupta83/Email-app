@@ -1,4 +1,4 @@
-const { message_Response, AddedByOrEditedBy } = require("../config/helper");
+const { message_Response, AddedByOrEditedBy, actionOnError } = require("../config/helper");
 const user = require("../models/user");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
@@ -14,31 +14,65 @@ let isValidEmail = function (email) {
 
 exports.getAll = async (_, res) => {
   try {
-    const allUser = await user.find({});
-    if (allUser) {
-      return message_Response(res, 200, "RESULT_FOUND", "user", true, allUser);
+    const allUser = await user.find({}).sort({"addedBy.date":-1});
+    if (allUser.length!=0) {
+      return res.status(200).send({status:true,data:allUser})
     } else {
-      return message_Response(res, 404, "NOT_FIND_ERROR", "", false);
+      return message_Response(res, 404, "NOT_FIND_ERROR", "Users", false);
     }
-  } catch (err) {
+  } catch (error) {
+    actionOnError(error);
     return message_Response(res, 500, "SERVER_ERROR", "", false);
   }
 };
 
 exports.create = (req, res) => {
+
   if (Object.keys(req.body).length == 0) {
-    return message_Response(res, 400, "Required", "req.body", false);
+    return message_Response(res, 400, "Required", "First Name", false);
   }
 
-  if (!isValidEmail(req.body.email))
-    return message_Response(res, 400, "InvalidEmail", " ", false, null);
-
   let { firstName, lastName, email, contactNo, position, password } = req.body;
+
+  if(!firstName || firstName.trim().length==0) {
+    return message_Response(res, 400, "Required", "First Name", false, null);
+  } 
+ 
+  if(!lastName || lastName.trim().length==0) {
+    return message_Response(res, 400, "Required", "Last Name", false, null);
+  }
+  
+  if(!email || email.trim().length==0) {
+    return message_Response(res, 400, "Required", "Email", false, null);
+  }
+
+  if(!password || password.trim().length==0) {
+    return message_Response(res, 400, "Required", "Password", false, null);
+  }
+
+if(position|| position==""){
+
+  if(position.trim().length==0||!["admin","hr","user"].includes(position)){
+    return message_Response(res, 400, "InvalidField", "Position", false, null);
+  }
+}
+  
+if(contactNo || contactNo==''){
+  if(contactNo.trim().length==0) {
+  return message_Response(res, 400, "InvalidField", "Contact No", false, null);
+}
+}
+
+
+if (!isValidEmail(req.body.email))
+  return message_Response(res, 400, "InvalidEmail", " ", false, null);
+  
 
   user.findOne({ email }).then((singleUser) => {
     if (singleUser) {
       res.status(400).send({
-        message: email + " email already register",
+        status:false,
+        message:"Email already in Use",
       });
     } else {
       const addedBy = AddedByOrEditedBy(req, "add");
@@ -56,7 +90,7 @@ exports.create = (req, res) => {
           });
         })
         .catch((err) => {
-          console.log(err.message)
+          actionOnError(err);
           return message_Response(res, 500, "SERVER_ERROR", "", false);
         });
     }
@@ -64,7 +98,19 @@ exports.create = (req, res) => {
 };
 
 exports.login = async (req, res) => {
+try {
+
   let { email, password } = req.body;
+
+
+  if(!email || email.trim().length==0) {
+    return message_Response(res, 400, "Required", "Email", false, null);
+  } 
+
+
+  if(!password || password.trim().length==0) {
+    return message_Response(res, 400, "Required", "Password", false, null);
+  }
 
   if (!isValidEmail(email))
     return message_Response(res, 400, "InvalidEmail", " ", false, null);
@@ -72,33 +118,39 @@ exports.login = async (req, res) => {
   user.findOne({ email, password }).then((user) => {
     if (!user) {
       res.status(404).send({
-        message: "user is not found",
+        status:false,
+        message: "Username/Password Invalid",
       });
     } else {
-      const token = jwt.sign(user.toObject(), "secret-key");
+      const token = jwt.sign(user.toObject(), process.env.SECRET_KEY);
       return message_Response(
         res,
         200,
         "SUCCESS",
-        "token generated",
+        "Login successfully",
         true,
         token
       );
     }
   });
+
+}catch(err){
+  actionOnError(err);
+  return message_Response(res, 500, "SERVER_ERROR", "", false);
+}
 };
 
 exports.update = async (req, res) => {
   try {
     if (Object.keys(req.body).length == 0) {
-      return message_Response(res, 400, "Required", "req.body", false);
+      return message_Response(res, 400, "Required", "First Name", false);
     }
     if (!req.params.userId) {
       return message_Response(
         res,
         400,
-        "TOKEN_REQ",
-        "req.params.userId",
+        "Required",
+        "User Id",
         false
       );
     }
@@ -107,24 +159,64 @@ exports.update = async (req, res) => {
         res,
         400,
         "InvalidField",
-        "userId",
+        "User Id",
         false
       );
     }
 
- if(req.body.email){   
+let isExistUser =  await user.findById(req.params.userId).lean();
+
+if(!isExistUser) return message_Response(res,404,"NOT_EXIST","user",false,null)
+
+
+ if(req.body.email || req.body.email==''){
 
           if (!isValidEmail(req.body.email))
               return message_Response(res, 400, "InvalidEmail", " ", false, null);
 
-            user.findOne({ email:req.body.email}).then((singleUser) => {
-              if (singleUser) {
-                res.status(400).send({
-                  message: req.body.email + " email already register",
-                });
-              }
-            });          
+              let singleUser= await user.findOne({ email:req.body.email}).lean()
+
+
+            if(singleUser) {
+
+              if (singleUser._id.toString()!=req.params.userId) {
+
+                           return res.status(400).send({status:false,message:" Email already register"})
+
+                    }
+
+                  }
+ }
+
+ let { firstName, lastName, email, contactNo, position, password } = req.body;
+
+
+  if(!firstName||firstName.trim().length==0)
+  return message_Response(res, 400, "Required", "First Name", false, null);
+
+
+  if(!lastName||lastName.trim().length==0)
+  return message_Response(res, 400, "Required", "last Name", false, null);
+
+
+  if(contactNo|| contactNo.trim().length!=0)
+ {
+  if(isNaN(+contactNo) ||  contactNo.trim().length==0 ){
+    return message_Response(res, 400, "InvalidField", "Contact No", false, null);
+
   }
+ }
+
+
+  if(!password||password.trim().length==0)
+  return message_Response(res, 400, "Required", "Password", false, null);
+
+
+if(position){
+    if(!["admin","hr","user"].includes(position)){
+    return message_Response(res, 400, "InvalidField", "Position", false, null);
+  }
+}
 
     const editedBy = AddedByOrEditedBy(req, "edit");
     req.body.editedBy = editedBy;
@@ -151,12 +243,12 @@ exports.update = async (req, res) => {
         200,
         "UpdateSuccess",
         "User",
-        false,
+        true,
         updatedUser
       );
     }
   } catch (error) {
-    console.log(error.message)
+    actionOnError(error);
     return message_Response(res, 500, "SERVER_ERROR", "", false);
   }
 };
@@ -167,8 +259,8 @@ exports.delete = (req, res) => {
       return message_Response(
         res,
         400,
-        "TOKEN_REQ",
-        "req.params.userId",
+        "InvalidField",
+        "User Id",
         false
       );
     }
@@ -177,19 +269,20 @@ exports.delete = (req, res) => {
         res,
         400,
         "InvalidField",
-        "req.params.userId",
+        "User Id",
         false
       );
     }
     user.findByIdAndRemove(req.params.userId).then((user) => {
       if (!user) {
         return res.status(404).send({
-          message: "User not found with id " + req.params.userId,
+          message: "User not found",
         });
       }
-      res.status(200).send({ message: "User deleted successfully!" });
+      return res.status(200).send({status:true, message: "User deleted successfully!" });
     });
   } catch (error) {
+    actionOnError(err);
     return message_Response(res, 500, "SERVER_ERROR", "", false);
   }
 };

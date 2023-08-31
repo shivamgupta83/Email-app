@@ -5,10 +5,12 @@ const userSchema = new mongoose.Schema(
     firstName: {
       type: String,
       required: true,
+      trim: true,
     },
     lastName: {
       type: String,
       required: true,
+       trim: true,
     },
     email: {
       type: String,
@@ -19,7 +21,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    position: String,
+    position: {type:String,enum :["admin","user","hr"]},
     password :{
         type: String,
         required: true,

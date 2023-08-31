@@ -33,11 +33,26 @@ const clientSchema = new mongoose.Schema({
         zip:String
         },
 noOfEmployees:Number,
-cp_firstName : String,
-cp_lastName : String,
-cp_contactNo : String,
-cp_email : String,
-cp_whatsAppNo : String,
+cp_firstName : {
+    type: String,
+       trim: true,
+},
+cp_lastName :  {
+    type: String,
+       trim: true,
+},
+cp_contactNo :  {
+    type: String,
+       trim: true,
+},
+cp_email :  {
+    type: String,
+       trim: true,
+},
+cp_whatsAppNo :  {
+    type: String,
+       trim: true,
+},
 addedBy: Object,
 editedBy: Object, 
 });

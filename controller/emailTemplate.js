@@ -1,4 +1,4 @@
-const { message_Response } = require("../config/helper");
+const { message_Response ,AddedByOrEditedBy,actionOnError} = require("../config/helper");
 const email = require("../models/emailTemplate");
 const mongoose = require("mongoose");
 
@@ -7,27 +7,43 @@ exports.create= async(req,res)=>{
 try    {
 
   if (Object.entries( req.body).length==0) {
-    return message_Response(res, 400, "Required", "req.body", false);
+    return message_Response(res, 400, "Required", "subject", false);
 }  
+   let {subject,body} = req.body;
+
+if(!body || body.trim().length==0){
+    return message_Response(res, 400, "Required", "body", false, null);
+  }
+if(!subject || subject.trim().length==0){
+  return message_Response(res, 400, "Required", "subject", false, null);
+}
+
+
+let addedBy = AddedByOrEditedBy(req,"add")
+// {$or:[{subject},{body}]}
+let isSubExist = await email.findOne({subject})
+if(isSubExist) return message_Response(res, 400, "DUPLICATE", "Email Template", false, null);
 
 const emails = new email({
-  subject: `<h3>${req.body.subject}</h3>`,
-  body: `<p>${req.body.body}</p>`,
-  name: req.body.name,
+  subject:req.body.subject,
+  body:req.body.body,
+  addedBy
   })
-
   
 const savedEmail= await emails.save()
 
 if(savedEmail)
 return res.status(200).send({
-    message: "email added successfully",
+    message: "Email Added successfully",
     data: savedEmail,
     success : true
   });
 
-else return message_Response(res, 400, "CREATE_ERROR", "emailTemplate", false, null);}
+else return message_Response(res, 400, "CREATE_ERROR", "Email Template", false, null);
+
+}
 catch (error){
+  actionOnError(error)
   return message_Response(res, 500, "SERVER_ERROR", "", false);
 }
 }
@@ -36,21 +52,15 @@ catch (error){
 exports.getAll= async(req,res)=>{
   try {
 
-    const getEmail = await email.find({});
-    if(getEmail.length==0) return message_Response(res, 400, "NOT_EXIST", "emailTemplate", false, null);
-  else {
-    message_Response(
-      res,
-      200,
-      "RESULT_FOUND",
-      `email`,
-      true,
-      getEmail
-    );
-  }
-  
+    const getEmail = await email.find({}).sort({"addedBy.date":-1});
+    if(getEmail.length==0) return message_Response(res, 400, "NOT_EXIST", "Email Template", false, null);
+    
+      else {
+       return res.status(200).send({status:true,data:getEmail})        
+      }  
   }
  catch (error) {
+  actionOnError(error)
     return message_Response(res, 500, "SERVER_ERROR", "", false);
   }
 }
@@ -59,36 +69,36 @@ exports.getAll= async(req,res)=>{
 exports.delete=  async(req,res)=>{
 
  try {
-    if (!req.params.emailId) {
+    if (!req.params.emailTemplateId) {
     return message_Response(
       res,
       400,
-      "TOKEN_REQ",
-      "req.params.emailId",
+      "Required",
+      "Id",
       false
     );
   }
-  if (!mongoose.isValidObjectId(req.params.emailId)) {
+  if (!mongoose.isValidObjectId(req.params.emailTemplateId)) {
     return message_Response(
       res,
       400,
       "InvalidField",
-      "req.params.emailId",
+      "Email Template Id",
       false
     );
   }
 
-  email.findByIdAndRemove(req.params.emailId).then((email) => {
-      if (!email) {
+  email.findByIdAndRemove(req.params.emailTemplateId).then((email) => {
+      if (!email){
         return res.status(404).send({
-          message: "email not found with id " + req.params.emailId,
+          message: "Email not found",
           success : false
         });
       }
-      res.status(200).send({ message: "email deleted successfully!" });
+      res.status(200).send({status:true, message: "Email Template deleted successfully!" });
     })
   }catch(error){
-
+    actionOnError(error)
 return message_Response(res,500,"SERVER_ERROR","",false)
 
   }
@@ -100,34 +110,43 @@ exports.update= async(req,res)=>{
 try {
 
   if (Object.keys(req.body).length==0) {
-    return message_Response(res, 400, "Required", "req.body", false);
+    return message_Response(res, 400, "Required", "subject", false);
 }
-  if (!req.params.emailId) {
+  if (!req.params.emailTemplateId) {
     return message_Response(
       res,
       400,
-      "TOKEN_REQ",
-      "req.params.emailId",
+      "Required",
+      "Id",
       false
     );
   }
-  if (!mongoose.isValidObjectId(req.params.emailId)) {
+  if (!mongoose.isValidObjectId(req.params.emailTemplateId)) {
     return message_Response(
       res,
       400,
       "InvalidField",
-      "req.params.emailId",
+      "Email Template Id",
       false
     );
   }
+  let {subject,body} = req.body
 
+  if(!subject || subject.trim().length==0){
+    return message_Response(res, 400, "Required", "subject", false, null);
+  }
+  if(!body || body.trim().length==0){
+    return message_Response(res, 400, "Required", "body", false, null);
+  }
+
+  let editedBy = AddedByOrEditedBy(req,"edit")
  
   let updatedEmail = await email.findByIdAndUpdate(
-    req.params.emailId,
+    req.params.emailTemplateId,
     {
-      subject: `<h3>${req.body.subject}</h3>`,
-      body: `<p>${req.body.body}</p>`,
-      name: req.body.name,
+      subject: req.body.subject,
+      body: req.body.body,
+      editedBy
       },
     { new: true }
   );
@@ -139,12 +158,13 @@ try {
       res,
       200,
       "UpdateSuccess",
-      "User",
-      false,
+      "Email template",
+      true,
       updatedEmail
     );
   }
 } catch (error) {
+  actionOnError(error)
   return message_Response(res,500,"SERVER_ERROR","",false)
 }
 }

@@ -1,10 +1,14 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-app.use(cors());
-app.use(express.json());
 const { default: mongoose } = require("mongoose");
 const { Auth } = require("./config/auth");
+const { CronJob } = require('cron')
+const {EventSave} = require("./controller/emailSend")
+const dotenv = require("dotenv");
+dotenv.config();
+app.use(cors());
+app.use(express.json());
 
 
 
@@ -12,7 +16,7 @@ const { Auth } = require("./config/auth");
 mongoose.set("strictQuery", true);
 mongoose
   .connect(
-    "mongodb+srv://husainsanwerwala:i6HsoFwpo8v8oBLr@cluster0.bryk6wr.mongodb.net/newProject01",
+    process.env.DATABASE,
     { useNewUrlParser: true }
   )
   .then(() => console.log("MongoDB is connected"))
@@ -20,45 +24,27 @@ mongoose
 
 // ======================user APi`s=========================
 
-app.get("/user/getAll", require("./controller/user").getAll);
-
-app.post("/user/create",Auth, require("./controller/user").create);
-
-app.post("/user/login",require("./controller/user").login);
-
-app.put("/user/Update/:userId",Auth, require("./controller/user").update);
-
-app.delete("/user/delete/:userId",Auth, require("./controller/user").delete);
+app.use("/user",require("./routes/user"))
 
 //====================client Apis`s===========================
 
-app.get("/client/getAll",Auth, require("./controller/client").getAll);
-
-app.post("/client/create",Auth, require("./controller/client").create);
-
-app.put("/client/Update/:clientId",Auth, require("./controller/client").update);
-
-app.delete("/client/delete/:clientId",Auth, require("./controller/client").delete);
+app.use("/client",require("./routes/client"))
 
 // =========================email template api`s===================
 
-app.get("/email/getAll", require("./controller/emailTemplate").getAll);
-
-app.post("/email/create", require("./controller/emailTemplate").create);
-
-app.put("/email/Update/:emailId", require("./controller/emailTemplate").update);
-
-app.delete("/email/delete/:emailId", require("./controller/emailTemplate").delete);
-
+app.use("/emailTemplate",require("./routes/emailTemplate"));
 
 // ========================== email send api`s=================================
 
+app.use("/emailSend",require("./routes/emailSend"));
 
 
+(function (){
+new CronJob("01 00 * * * *",function(){
+  EventSave();
+},null,true,"Asia/kolkata")
+})()
 
-
-
-
-app.listen(3005, function () {
-  console.log("Express is running on Port " + 3005);
+app.listen(process.env.PORT, function () {
+  console.log("Express is running on Port https://localhost:" + process.env.PORT);
 });
