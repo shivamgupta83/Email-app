@@ -4,7 +4,9 @@ const { Auth } = require("../config/auth");
 
 
 route.post("/sendEmail",Auth, require("../controller/emailSend").sendEmail);
-route.post("/EventSave",Auth, require("../controller/emailSend").EventSave);
+route.post("/eventSave",Auth, require("../controller/emailSend").EventSave);
+route.post("/sendEmailReport",Auth, require("../controller/emailSend").getSendEmailReport);
+route.post("/sendEmailReportPerClient/:clientId",Auth, require("../controller/emailSend").getsendEmailReportPerClient);
 
 
 module.exports = route;
