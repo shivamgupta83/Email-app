@@ -7,6 +7,9 @@ const emailTemplateSchema = new mongoose.Schema({
   body: {
     type: String,
   },
+  name:{
+    type: String,
+  },
   // userId: mongoose.Schema.Types.ObjectId,
   addedBy: Object,
   editedBy: Object,

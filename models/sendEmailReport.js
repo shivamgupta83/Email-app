@@ -6,7 +6,7 @@ let sendEmailReport = new mongoose.Schema({
     subject :String,
     textBody : String,
     from :String,
-	date :String,
+	date :Date,
 	status :String,
     requestId:String,
     responce:Object,

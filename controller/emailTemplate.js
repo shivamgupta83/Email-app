@@ -9,15 +9,19 @@ try    {
   if (Object.entries( req.body).length==0) {
     return message_Response(res, 400, "Required", "subject", false);
 }  
-   let {subject,body} = req.body;
+   let {subject,body,name} = req.body;
 
 if(!body || body.trim().length==0){
     return message_Response(res, 400, "Required", "body", false, null);
   }
+  
 if(!subject || subject.trim().length==0){
   return message_Response(res, 400, "Required", "subject", false, null);
 }
 
+if(!name || name.trim().length==0){
+  return message_Response(res, 400, "Required", "name", false, null);
+}
 
 let addedBy = AddedByOrEditedBy(req,"add")
 // {$or:[{subject},{body}]}
@@ -27,7 +31,8 @@ if(isSubExist) return message_Response(res, 400, "DUPLICATE", "Email Template", 
 const emails = new email({
   subject:req.body.subject,
   body:req.body.body,
-  addedBy
+  addedBy,
+  name
   })
   
 const savedEmail= await emails.save()
@@ -130,7 +135,7 @@ try {
       false
     );
   }
-  let {subject,body} = req.body
+  let {subject,body,name} = req.body
 
   if(!subject || subject.trim().length==0){
     return message_Response(res, 400, "Required", "subject", false, null);
@@ -138,6 +143,10 @@ try {
   if(!body || body.trim().length==0){
     return message_Response(res, 400, "Required", "body", false, null);
   }
+  if(!name || name.trim().length==0){
+    return message_Response(res, 400, "Required", "name", false, null);
+  }
+
 
   let editedBy = AddedByOrEditedBy(req,"edit")
  
@@ -146,7 +155,8 @@ try {
     {
       subject: req.body.subject,
       body: req.body.body,
-      editedBy
+      editedBy,
+      name
       },
     { new: true }
   );
