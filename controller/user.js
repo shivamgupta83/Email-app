@@ -82,9 +82,9 @@ exports.create = (req, res) => {
     return message_Response(res, 400, "Required", "Password", false, null);
   }
 
-if(position|| position==""){
+if(position){
 
-  if(position.trim().length==0||!["1","2","3"].includes(position)){
+  if(typeof position !="number" ||![1,2,3].includes(position)){
     return message_Response(res, 400, "InvalidField", "Position", false, null);
   }
 }
@@ -109,8 +109,7 @@ if (!isValidEmail(req.body.email))
     } else {
       const addedBy = AddedByOrEditedBy(req, "add");
       req.body.addedBy = addedBy;
-      console.log(role)
-      req.body.position = role[position]
+      // req.body.position = role[position]
       const newUser = new user(req.body);
 
       // newUser.addedBy = addedBy
@@ -247,14 +246,14 @@ if(!isExistUser) return message_Response(res,404,"NOT_EXIST","user",false,null)
 
 
 if(position){
-    if(!["1","2","3"].includes(position)){
+    if(![1,2,3].includes(position)){
     return message_Response(res, 400, "InvalidField", "Position", false, null);
   }
 }
 
     const editedBy = AddedByOrEditedBy(req, "edit");
     req.body.editedBy = editedBy;
-    req.body.position = role[position]
+    // req.body.position = role[position]
     let updatedUser = await user.findByIdAndUpdate(
       req.params.userId,
       {
@@ -359,14 +358,14 @@ if(!isExistUser) return message_Response(res,404,"NOT_EXIST","user",false,null)
 
 
 if(position){
-    if(!["1","2","3"].includes(position)){
+    if(![1,2,3].includes(position)){
     return message_Response(res, 400, "InvalidField", "Position", false, null);
   }
 }
 
     const editedBy = AddedByOrEditedBy(req, "edit");
     req.body.editedBy = editedBy;
-    req.body.position = role[position];
+    // req.body.position = role[position];
     let updatedUser = await user.findByIdAndUpdate(
       req.user._id,
       {

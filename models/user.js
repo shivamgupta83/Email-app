@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    position: {type:String,enum :["Admin","HR","User"]},
+    position: {type:Number,enum :[1,2,3]},
     password :{
         type: String,
         required: true,
