@@ -6,12 +6,12 @@ exports.Auth= async (req, res, next) => {
 
         if (!header) return res.status(400).send({ status: false, msg: "token is not present" })
 
-        jwt.verify(header, process.env.SECRET_KEY, function (err, token) {
+        jwt.verify(header, process.env.SECRET_KEY, function (err, user) {
             if (err) {
                 return res.status(401).send({ status: false, msg: "Token invalid / Token Expired" })
             }
-            else {
-                req.user = token
+            else {    
+                req.user = user
                 next()
             }
         })
