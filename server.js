@@ -39,11 +39,16 @@ app.use("/emailTemplate",require("./routes/emailTemplate"));
 app.use("/emailSend",require("./routes/emailSend"));
 
 
+// ============================this running every day end 00:01 am===================
+
 (function (){
 new CronJob("01 00 * * * *",function(){
   EventSave();
 },null,true,"Asia/kolkata")
 })()
+
+
+// =================================server============================
 
 app.listen(process.env.PORT, function () {
   console.log("Express is running on Port https://localhost:" + process.env.PORT);

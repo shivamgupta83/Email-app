@@ -10,7 +10,6 @@ const dotenv = require("dotenv");
 const { default: mongoose } = require("mongoose");
 dotenv.config();
 const Event = require("../models/Event");
-
 exports.sendEmail = async (req, res) => {
   try {
     let { sendTo, subject, textBody } = req.body;
@@ -63,7 +62,7 @@ exports.sendEmail = async (req, res) => {
       sender: "client@hbwebsol.com",
       to: emailToSend,
       subject: subject,
-      text_body: textBody,
+      html_body: textBody,
     });
 
     let config = {
@@ -156,17 +155,24 @@ exports.EventSave = async (req, res) => {
   }
 };
 
+
+//it will give u only, whome whome client user send email,it only gives send emails not shows status of email.
+
+
 exports.getSendEmailReport = async (req, res) => {
   try {
     let { from, to } = req.body;
 
-    if (!from || from == "") {
+    if (from == "") {
       return message_Response(res, 400, "Required", "from", false);
     }
     if (to == "") {
       return message_Response(res, 400, "Required", "to", false);
     }
 
+    if(!from){
+      from =  new Date("2023-08-20T00:00:00Z")
+    }
   let   fromDate = new Date(from + "T00:00:00Z");
   let  toDate = new Date(to + "T00:00:00Z");
 
@@ -215,13 +221,17 @@ exports.getSendEmailReport = async (req, res) => {
         },
       },
     },
+  },{
+    $sort :{
+date:-1
+    }
   },
   {
     $project: {
       __v: 0,
       responce: 0,
       requestId: 0,
-      clientId: 0,
+      
       clientdata: 0,
     },
   }
@@ -236,8 +246,18 @@ exports.getSendEmailReport = async (req, res) => {
 };
 
 
+
+//it gives perticular client all send email.it not gives status of email.
+
 exports.getsendEmailReportPerClient = async(req,res)=>{
 try{
+
+  let docId;
+
+if(req.params.docId){
+   docId = new mongoose.Types.ObjectId(req.params.docId);
+}
+
 
 let clientId = req.params.clientId;
 let fromDate;
@@ -256,21 +276,22 @@ let toDate = new Date();
         );
       }
       if(Object.keys(req.body).length){
-        from = req.body.from;
-        to = req.body.to;
-        fromDate = new Date(from + "T00:00:00Z");
-        toDate = new Date(to + "T00:00:00Z");
+       if(req.body.from) {from = req.body.from;        
+        fromDate = new Date(from + "T00:00:00Z");}
+
+        if(req.body.to){to = req.body.to;
+        toDate = new Date(to + "T00:00:00Z");}
 
 }
 
-if(!from){
+if(!fromDate){
   fromDate = new Date("2023-08-20T00:00:00Z")
 }
 
  let aggregration = [
-    {
+{
       $match: {
-        $and: [
+        $and: [         
           {
             clientId: { $elemMatch: { $eq: clientId } }
           },
@@ -283,6 +304,11 @@ if(!from){
         ]
        },
       },
+       {
+        $sort :{
+    date:-1
+        }
+      },
       {
 $project:{
   responce:0,
@@ -290,6 +316,31 @@ $project:{
 }
 }          
  ]
+
+
+if(docId){
+
+aggregration[0]={
+  $match: {
+    $and: [         
+      {
+        clientId: { $elemMatch: { $eq: clientId } }
+      },
+      {
+        date: {
+          $gte: fromDate,
+          $lte: toDate
+        }
+      },
+      {      
+          _id: docId
+                
+      }
+    ]
+   },
+  }
+
+}
 
 
 let clientSendEmailHistory = await sendEmailReport.aggregate(aggregration);

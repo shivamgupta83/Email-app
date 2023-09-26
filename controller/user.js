@@ -44,7 +44,7 @@ exports.getById = async (req, res) => {
 exports.getProfile = async (req, res) => {
 
     try {
-          const User = await user.findById(req.user._id);
+          const User = await user.findById(req.user._id).select({password:0});
         if (User) {
           return res.status(200).send({status:true,data:User})
         } else {
